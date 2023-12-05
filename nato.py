@@ -6,7 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from colored import fg, attr
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import sent_tokenize, word_tokenize
 import textwrap
 
 
@@ -63,9 +63,14 @@ def check_civil_conflict(country):
 
         # Search each sentence for the current year and conflict keywords
         for sentence in sentences:
-            if str(current_year) in sentence:
-                for keyword in conflict_keywords:
-                    if keyword in sentence.lower():
+            words = word_tokenize(sentence)
+            year_positions = [i for i, word in enumerate(words) if str(current_year) in word]
+            keyword_positions = [i for i, word in enumerate(words) if any(keyword in word.lower() for keyword in conflict_keywords)]
+
+            # Check the proximity of year and keyword
+            for year_pos in year_positions:
+                for keyword_pos in keyword_positions:
+                    if abs(year_pos - keyword_pos) <= 10:  # Adjust the proximity limit as needed
                         # Wrap the sentence to 80 characters
                         wrapped_sentence = textwrap.fill(sentence, width=80)
                         return f"Potential recent conflict found:\n{wrapped_sentence}"
