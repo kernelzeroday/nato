@@ -37,18 +37,27 @@ def get_country_info(code):
 
     # Assign colors to each field
     color_name = fg('white')
-    color_region = fg('magenta')
+    color_region = fg('light_red')  # Changed from magenta to grey
     color_subregion = fg('cyan')
     color_population = fg('light_green')
     color_languages = fg('light_yellow')
     color_currencies = fg('light_cyan')
 
+    # Format population with commas
+    population_formatted = f"{int(data.get('population', 0)):,}"
+
+    # Check and specify Chinese language variants
+    languages = data.get('languages', [])
+    for lang in languages:
+        if lang['iso639_1'] == 'zh':
+            lang['name'] = 'Mandarin/Cantonese'  # Assuming Mandarin/Cantonese for Chinese
+
     country_info = {
         'Country Name': f"{color_name}{data.get('name')}{attr('reset')}",
         'Region': f"{color_region}{data.get('region')}{attr('reset')}",
         'Subregion': f"{color_subregion}{data.get('subregion')}{attr('reset')}",
-        'Population': f"{color_population}{data.get('population')}{attr('reset')}",
-        'Languages': f"{color_languages}{', '.join([lang['name'] for lang in data.get('languages', [])])}{attr('reset')}",
+        'Population': f"{color_population}{population_formatted}{attr('reset')}",
+        'Languages': f"{color_languages}{', '.join([lang['name'] for lang in languages])}{attr('reset')}",
         'Currencies': f"{color_currencies}{', '.join([currency['name'] for currency in data.get('currencies', [])])}{attr('reset')}",
     }
     code_upper = code.upper()  # Normalize code to uppercase
