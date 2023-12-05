@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 import argparse
+import datetime
 import logging
 import requests
+from bs4 import BeautifulSoup
+import re
 from colored import fg, attr
+from nltk.tokenize import sent_tokenize
+import textwrap
+
+
 
 # Configuration for logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+
 
 # Static data for NATO and BRICS membership status
 nato_countries = {
@@ -20,6 +30,56 @@ nato_countries = {
 }
 
 brics_countries = ["BR", "RU", "IN", "CN", "ZA", "EG", "ET", "IR", "SA", "AE"]  # Including new members effective 2024
+
+
+def check_civil_conflict(country):
+    """
+    Check if a given country is currently in a civil conflict using Wikipedia.
+    """
+    # [Previous setup code, if any]
+
+    # Format the Wikipedia URL for the given country
+    url = f"https://en.wikipedia.org/wiki/{country.replace(' ', '_')}"
+
+    try:
+        # Fetch the Wikipedia page for the country
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        # Parse the HTML content
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Get the current year
+        current_year = datetime.datetime.now().year
+
+        # Convert the entire Wikipedia page text into a string
+        content_text = soup.get_text()
+
+        # Tokenize the text into sentences
+        sentences = sent_tokenize(content_text)
+
+        # Define conflict-related keywords
+        conflict_keywords = ["war", "conflict", "insurgency", "rebellion", "uprising"]
+
+        # Search each sentence for the current year and conflict keywords
+        for sentence in sentences:
+            if str(current_year) in sentence:
+                for keyword in conflict_keywords:
+                    if keyword in sentence.lower():
+                        # Wrap the sentence to 80 characters
+                        wrapped_sentence = textwrap.fill(sentence, width=80)
+                        return f"Potential recent conflict found:\n{wrapped_sentence}"
+
+        return f"No recent conflicts found for {country} in {current_year}."
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching page: {e}")
+        return f"An error occurred while fetching information: {e}"
+    except Exception as e:
+        logging.error(f"General error: {e}")
+        return f"An error occurred: {e}"
+
+
+
 
 def get_country_info(code):
     """
@@ -74,6 +134,10 @@ def get_country_info(code):
         color = fg('yellow')
 
     country_info['Membership Status'] = f"{color}{membership_status}{attr('reset')}"
+    country_name = data.get('name')  # Assuming 'name' is present in the API response
+    conflict_info = check_civil_conflict(country_name)
+    country_info['Civil Conflict'] = conflict_info
+
 
     return country_info
 
